@@ -1,0 +1,25 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+.ruff_cache
+
+./node_modules
+# Virtual environments
+.venv
+
+# Local credentials and database files
+.env
+*.db
+*.db-shm
+*.db-wal
+
+# Private database backups
+/backups/
+
+# Private sessions, audits, uploaded files and original workbook bytes
+/private/
+.env

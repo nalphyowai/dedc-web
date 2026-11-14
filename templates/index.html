@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+
+{% block title %}သိပ္ပံနှင့်နည်းပညာဝန်ကြီးဌာန | Ministry of Science and Technology{% endblock %}
+
+{% block extra_css %}
+<style>
+  html, body {
+    max-width: 100%;
+    /* `clip` keeps horizontal overflow hidden without breaking the sticky header.
+       `hidden` makes the body a scroll container, which disables position: sticky. */
+    overflow-x: clip;
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  .hero-frame {
+    overflow: hidden;
+  }
+
+  .map-wrapper,
+  .map-container,
+  .information,
+  .intro-full-width {
+    max-width: 100%;
+  }
+
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* CENTER THE HERO SECTION */
+  .hero {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    max-width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .hero-frame {
+    position: relative;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    border-radius: 24px;
+  }
+
+  /* FIX: Smaller introduction text */
+  .intro-heading {
+    margin: 0;
+    color: #1b3452;
+    font-size: clamp(1.1rem, 2vw, 1.5rem);
+    font-weight: 600;
+    line-height: 1.7;
+    letter-spacing: -.02em;
+  }
+
+  .intro-description {
+    max-width: 800px;
+    margin: 14px 0 0;
+    color: var(--home-muted);
+    font-size: .95rem;
+    line-height: 1.8;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+  <!-- Hero / Main banner -->
+  <section class="hero section-fade-in"
+           aria-roledescription="carousel" aria-label="အဓိကသတင်းများ" data-carousel>
+    <div class="hero-frame">
+      <img class="hero-image is-active" src="/static/img/p1.jpg" alt=""
+           width="1376" height="768" fetchpriority="high" data-slide>
+      <img class="hero-image" src="/static/img/hero-2.png" alt=""
+           width="1376" height="768" loading="lazy" data-slide>
+      <img class="hero-image" src="/static/img/hero-3.png" alt=""
+           width="1376" height="768" loading="lazy" data-slide>
+
+      <div class="hero-overlay"></div>
+      <div class="hero-decoration hero-decoration--one"></div>
+      <div class="hero-decoration hero-decoration--two"></div>
+
+      <div class="hero-content">
+        <div class="hero-copy" aria-live="off" aria-atomic="true">
+          <span class="hero-eyebrow">
+            <span class="eyebrow-dot"></span> SCIENCE · TECHNOLOGY · INNOVATION
+          </span>
+          <h1 class="hero-title">ဆန်းသစ်တီထွင်မှုနှင့် ဒီဂျစ်တယ်အတတ်ပညာမြှင့်တင်ရေးလုပ်ငန်းကော်မတီ</h1>
+          <p class="hero-description">
+            သိပ္ပံနှင့်နည်းပညာ ဖွံ့ဖြိုးတိုးတက်ရေးမှတစ်ဆင့် ပိုမိုကောင်းမွန်သော အနာဂတ်ကို တည်ဆောက်ခြင်း။
+          </p>
+          <div class="hero-actions">
+            <!-- <a href="#survey" class="button button--primary"> 
+              ပိုမိုလေ့လာရန် <span aria-hidden="true">→</span>
+            </a>
+          </div>-->
+        </div>
+
+        <div class="carousel-controls">
+          <div class="slide-dots" aria-label="Slide ရွေးချယ်ရန်">
+            <button class="slide-dot" type="button" data-slide-to="0" aria-label="Slide 1" aria-current="true"></button>
+            <button class="slide-dot" type="button" data-slide-to="1" aria-label="Slide 2" aria-current="false"></button>
+            <button class="slide-dot" type="button" data-slide-to="2" aria-label="Slide 3" aria-current="false"></button>
+          </div>
+          <div class="carousel-arrows">
+            <button class="icon-button carousel-pause" type="button" data-slide-pause
+                    aria-label="Slideshow ခေတ္တရပ်ရန်" aria-pressed="false"><span aria-hidden="true">Ⅱ</span></button>
+            <button class="icon-button arrow-left" type="button" data-slide-prev aria-label="ရှေ့သို့">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M19 12H5m6 6-6-6 6-6"/></svg>
+            </button>
+            <button class="icon-button" type="button" data-slide-next aria-label="နောက်သို့">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="hero-side-label" aria-hidden="true">BUILDING A SMARTER FUTURE</div>
+    </div>
+  </section>
+
+  <!-- Introduction -->
+  <section class="container section-space section-fade-in" id="survey">
+    <div class="intro-full-width">
+      <div class="section-heading">
+        <span class="section-label">မိတ်ဆက် / INTRODUCTION</span>
+        <span class="heading-line" aria-hidden="true"></span>
+      </div>
+      <h2 class="intro-heading">
+        သိပ္ပံနှင့်နည်းပညာဝန်ကြီးဌာနသည် နိုင်ငံတော်၏ သိပ္ပံနှင့်နည်းပညာဆိုင်ရာ ကဏ္ဍအသီးသီးတွင် သုတေသန၊ နည်းပညာဖွံ့ဖြိုးတိုးတက်ရေးနှင့် လူသားအရင်းအမြစ်ဖွံ့ဖြိုးရေးတို့ကို ဆောင်ရွက်လျက်ရှိပါသည်။
+      </h2>
+      <p class="intro-description">
+        ဤစစ်တမ်းကောက်ယူခြင်းသည် ဝန်ကြီးဌာန၏ ဝန်ဆောင်မှုများနှင့် မူဝါဒများကို ပိုမိုကောင်းမွန်စေရန် အချက်အလက်များ စုဆောင်းခြင်းဖြစ်ပါသည်။
+      </p>
+
+      <dl class="stats card-container">
+        <div class="stat-card">
+          <span class="stat-icon" aria-hidden="true">✦</span>
+          <dd>၁၉၉၆</dd>
+          <dt>စတင်ဖွဲ့စည်းသည့်နှစ်</dt>
+        </div>
+        <div class="stat-card">
+          <span class="stat-icon" aria-hidden="true">▦</span>
+          <dd>၇</dd>
+          <dt>ဦးစီးဌာနများ</dt>
+        </div>
+        <div class="stat-card">
+          <span class="stat-icon" aria-hidden="true">↗</span>
+          <dd>၂၀၂၁</dd>
+          <dt>နောက်ဆုံး ပြင်ဆင်ဖွဲ့စည်းမှု</dt>
+        </div>
+      </dl>
+
+      <!-- <p class="notice">
+        <span class="notice-icon" aria-hidden="true">i</span>
+        ဤစာမျက်နှာရှိ အချက်အလက်များသည် ယာယီဖြစ်ပြီး စစ်တမ်းအတွက် နမူနာအနေဖြင့် ဖော်ပြထားခြင်း ဖြစ်ပါသည်။
+      </p> -->
+    </div>
+  </section>
+
+  <!-- Ministry information -->
+  <section class="information section-space" aria-label="ဝန်ကြီးဌာန အချက်အလက်များ">
+    <div class="container">
+      <div class="section-intro">
+        <span class="section-label">OUR MINISTRY</span>
+        <h2>ဝန်ကြီးဌာနအကြောင်း</h2>
+        <p>သမိုင်းကြောင်း၊ ဖွဲ့စည်းပုံနှင့် လုပ်ငန်းဆောင်ရွက်မှုများကို လေ့လာနိုင်ပါသည်။</p>
+      </div>
+
+      <div class="information-inner">
+        <article class="info-row card-hover" id="history">
+          <div class="info-image">
+            <img src="/static/img/history.png" alt="ရှေးဟောင်း သိပ္ပံကိရိယာများနှင့် စာအုပ်များ"
+                 loading="lazy" width="1200" height="896">
+            <span class="image-caption">OUR HISTORY</span>
+          </div>
+          <div class="info-content">
+            <span class="section-number">01 / HISTORY</span>
+            <h3>သမိုင်းကြောင်း</h3>
+            <p class="info-body">
+              သိပ္ပံနှင့်နည်းပညာဝန်ကြီးဌာနကို ၁၉၉၆ ခုနှစ်တွင် စတင်ဖွဲ့စည်းခဲ့ပြီး နိုင်ငံတော်၏ သိပ္ပံနှင့်နည်းပညာဖွံ့ဖြိုးတိုးတက်ရေးအတွက် အဓိကတာဝန်ယူဆောင်ရွက်လျက်ရှိပါသည်။ နှစ်စဉ် သုတေသနစီမံကိန်းများ၊ နည်းပညာသင်တန်းများနှင့် ပြည်သူ့ဝန်ဆောင်မှုများကို ဆောင်ရွက်လျက်ရှိပါသည်။
+            </p>
+            <p class="badge">ဖွဲ့စည်းသည့်နှစ် — ၁၉၉၆</p>
+          </div>
+        </article>
+
+        <article class="info-row info-row--reverse card-hover" id="organization">
+          <div class="info-image">
+            <img src="/static/img/organization.png" alt="ခေတ်မီ သုတေသန ဓာတ်ခွဲခန်း"
+                 loading="lazy" width="1200" height="896">
+            <span class="image-caption">ORGANIZATION</span>
+          </div>
+          <div class="info-content">
+            <span class="section-number">02 / ORGANIZATION</span>
+            <h3>ပြင်ဆင်ဖွဲ့စည်းခြင်း</h3>
+            <p class="info-body">
+              ဝန်ကြီးဌာနကို ပြည်ထောင်စုဝန်ကြီး၊ ဒုတိယဝန်ကြီးနှင့် အမြဲတမ်းအတွင်းဝန်တို့ဖြင့် ဦးဆောင်ဖွဲ့စည်းထားပါသည်။ အောက်တွင် ဦးစီးဌာနများ၊ သုတေသနဌာနများနှင့် တက္ကသိုလ်များ ပါဝင်ပါသည်။
+            </p>
+            <p class="badge">ပြင်ဆင်ဖွဲ့စည်းမှု — ၂၀၂၃ ခုနှစ်</p>
+          </div>
+        </article>
+
+        <article class="info-row card-hover" id="departments">
+          <div class="info-image">
+            <img src="/static/img/departments.png" alt="ခေတ်မီ ရုံးခန်း စင်္ကြံ"
+                 loading="lazy" width="1200" height="896">
+            <span class="image-caption">OUR DEPARTMENTS</span>
+          </div>
+          <div class="info-content">
+            <span class="section-number">03 / DEPARTMENTS</span>
+            <h3>ဖွဲ့စည်းပုံနှင့် ဦးစီးဌာန</h3>
+            <p class="info-body">ဝန်ကြီးဌာနအောက်တွင် အောက်ပါဦးစီးဌာနများ ပါဝင်ပါသည်။</p>
+            <ul class="department-list">
+              <li>သိပ္ပံနှင့်နည်းပညာဦးစီးဌာန</li>
+              <li>သုတေသနနှင့်ဖွံ့ဖြိုးရေးဦးစီးဌာန</li>
+              <li>နည်းပညာမြှင့်တင်ရေးဦးစီးဌာန</li>
+              <li>သတင်းအချက်အလက်နည်းပညာဦးစီးဌာန</li>
+            </ul>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contact and map -->
+  <section class="container section-space section-fade-in" id="contact">
+    <div class="contact-layout">
+      <div class="contact-header">
+        <span class="section-label">GET IN TOUCH</span>
+        <h2>ဆက်သွယ်ရန်</h2>
+        <p>အသေးစိတ်သိရှိလိုပါက ဝန်ကြီးဌာန၏ ရုံးတည်နေရာကို လေ့လာနိုင်ပါသည်။</p>
+        <div class="contact-address">
+          <span class="contact-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+          </span>
+          <address>ရုံးအမှတ် (၂၁)၊ နေပြည်တော်၊<br>ပြည်ထောင်စုနယ်မြေ။</address>
+        </div>
+      </div>
+      <div class="map-wrapper card-hover">
+        <iframe
+          class="map-container"
+          src="https://www.google.com/maps?q=19.7633,96.0785&z=15&hl=en&output=embed"
+          title="ဝန်ကြီးဌာန တည်နေရာပြမြေပုံ"
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+          allowfullscreen></iframe>
+      </div>
+    </div>
+  </section>
+{% endblock %}
