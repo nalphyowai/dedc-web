@@ -4,6 +4,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="/static/css/pages/public-survey.css">
+<link rel="stylesheet" href="/static/css/pages/survey-answer.css?v=20261114-answer2">
 {% endblock %}
 
 {% block content %}
@@ -26,7 +27,7 @@
         <h1>တက္ကသိုလ် စစ်တမ်း</h1>
         <p>
           တက္ကသိုလ်ကို ရွေးချယ်ပြီး မေးခွန်းခေါင်းစဉ်များကို ဖြေဆိုပါ။
-          မေးခွန်းတစ်ခုလျှင် ရှိ/မရှိ၊ အရေအတွက်နှင့် အကြောင်းအရာ သုံးခုကို ဖြည့်စွက်ရန် လိုအပ်ပါသည်။
+          မေးခွန်းတစ်ခုလျှင် ရှိ/မရှိ၊ အရေအတွက်နှင့် အကြောင်းအရာ အသေးစိတ် ဖြည့်စွက်ရန် လိုအပ်ပါသည်။
         </p>
       </div>
       <a class="uni-button uni-button--ghost" href="/surveys/university">ခုနှစ် ပြန်ရွေးရန်</a>
@@ -54,9 +55,54 @@
       </div>
     </noscript>
 
-    <div class="uni-survey-layout">
-      
+    <section
+      class="uni-overall"
+      data-overall-progress
+      aria-labelledby="overall-progress-title"
+    >
+      <div class="uni-overall__head">
+        <div class="uni-overall__copy">
+          <span class="uni-overall__eyebrow">စစ်တမ်း တိုးတက်မှု</span>
+          <h2 id="overall-progress-title">စုစုပေါင်း ဖြေဆိုမှု</h2>
+          <p class="uni-overall__period">
+            {{ year.label }}
+            <span aria-hidden="true">·</span>
+            မေးခွန်း {{ question_count }} ခု
+          </p>
+        </div>
+        <div class="uni-overall__percent">
+          <strong data-overall-percent>{{ percent }}%</strong>
+          <span>ပြီးစီးမှု</span>
+        </div>
+      </div>
+      <div
+        class="uni-overall__track"
+        role="progressbar"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        aria-valuenow="{{ percent }}"
+        aria-label="စုစုပေါင်း ဖြေဆိုမှု ရာခိုင်နှုန်း"
+        data-overall-track
+      >
+        <span class="uni-overall__bar" data-overall-bar style="width: {{ percent }}%"></span>
+      </div>
+      <dl class="uni-overall__stats">
+        <div class="uni-overall__stat uni-overall__stat--done">
+          <dt><span class="uni-overall__dot" aria-hidden="true"></span>ဖြေဆိုပြီး</dt>
+          <dd data-overall-completed>{{ completed_count }} <small>မေးခွန်း</small></dd>
+        </div>
+        <div class="uni-overall__stat uni-overall__stat--remaining">
+          <dt><span class="uni-overall__dot" aria-hidden="true"></span>ကျန်ရှိ</dt>
+          <dd data-overall-remaining>{{ remaining_count }} <small>မေးခွန်း</small></dd>
+        </div>
+        <div class="uni-overall__stat">
+          <dt>စုစုပေါင်း</dt>
+          <dd>{{ question_count }} <small>မေးခွန်း</small></dd>
+        </div>
+      </dl>
+    </section>
 
+    <div class="uni-survey-layout">
       <form class="uni-form" method="post" action="/surveys/university/{{ year.yID }}" data-public-survey novalidate>
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
@@ -145,12 +191,23 @@
 
           <div class="uni-group-list">
             {% for group in groups %}
-            <article class="uni-group-card" data-group-card="{{ group.key }}">
-              <span class="uni-group-card__index" aria-hidden="true">{{ loop.index }}</span>
-              <div class="uni-group-card__copy">
-                <h3>{{ group.title }}</h3>
-              </div>
-            </article>
+            <button
+              type="button"
+              class="uni-group-card{% if group.complete %} is-complete{% endif %}"
+              data-group-card="{{ group.key }}"
+              data-open-group="{{ group.key }}"
+            >
+              <span class="uni-group-card__index" aria-hidden="true">
+                <span data-group-icon="{{ group.key }}">{% if group.complete %}✓{% else %}{{ loop.index }}{% endif %}</span>
+              </span>
+              <span class="uni-group-card__copy">
+                <span class="uni-group-card__title">{{ group.title }}</span>
+                <span class="uni-group-card__meta" data-group-count="{{ group.key }}">{{ group.done }} / {{ group.total }} မေးခွန်း</span>
+              </span>
+              <span class="uni-group-card__state" data-group-state="{{ group.key }}">
+                {% if group.complete %}ပြီးစီး{% elif group.done %}လုပ်ဆောင်နေဆဲ{% else %}မစတင်ရသေး{% endif %}
+              </span>
+            </button>
             {% endfor %}
           </div>
 
@@ -164,22 +221,43 @@
 
         <section class="uni-answer-stage" data-answer-stage hidden aria-label="မေးခွန်းဖြေဆိုရန်">
           <div class="uni-answer-layout">
-            <div class="uni-answer-main">
-              <div class="uni-answer-progress">
-                <div class="uni-answer-progress__head">
-                  <span>ဖြေဆိုမှု အခြေအနေ</span>
-                  <strong><span data-progress-count>0</span> / {{ question_count }}</strong>
-                </div>
-                <div class="uni-answer-progress__track">
-                  <span class="uni-answer-progress__bar" data-progress-bar></span>
-                </div>
-                <p class="uni-answer-progress__label" data-progress-label>မေးခွန်းများကို စတင်ဖြေဆိုပါ။</p>
+            <aside class="uni-section-nav" aria-label="မေးခွန်း အပိုင်းများ">
+              <div class="uni-section-nav__head">
+                <h2>အပိုင်းများ</h2>
+                <span class="uni-section-nav__summary" data-nav-summary>{{ completed_count }} / {{ question_count }}</span>
               </div>
+              <ol class="uni-section-list">
+                {% for group in groups %}
+                <li>
+                  <button
+                    type="button"
+                    class="uni-section-item{% if group.complete %} is-complete{% elif group.done %} is-in-progress{% else %} is-pending{% endif %}"
+                    data-open-group="{{ group.key }}"
+                    data-section-item="{{ group.key }}"
+                    data-section-index="{{ loop.index }}"
+                  >
+                    <span class="uni-section-item__icon" data-section-icon aria-hidden="true">{% if group.complete %}✓{% else %}{{ loop.index }}{% endif %}</span>
+                    <span class="uni-section-item__body">
+                      <span class="uni-section-item__title">{{ group.title }}</span>
+                      <span class="uni-section-item__meta">
+                        <span class="uni-section-item__count" data-section-count>{{ group.done }} / {{ group.total }} မေးခွန်း</span>
+                        <span class="uni-section-item__remaining" data-section-remaining {% if group.complete %}hidden{% endif %}>{{ group.total - group.done }} ခု ကျန်ရှိ</span>
+                      </span>
+                      <span class="uni-section-item__state" data-section-state>
+                        {% if group.complete %}ပြီးစီး{% elif group.done %}လုပ်ဆောင်နေဆဲ{% else %}မစတင်ရသေး{% endif %}
+                      </span>
+                    </span>
+                  </button>
+                </li>
+                {% endfor %}
+              </ol>
+            </aside>
 
+            <div class="uni-answer-main">
               <div class="uni-stage-bar">
                 <button type="button" class="uni-button uni-button--ghost uni-button--compact" data-close-stage>
                   <span aria-hidden="true">←</span>
-                  <span>ခေါင်းစဉ်များ</span>
+                  <span>အပိုင်းများ</span>
                 </button>
                 <div class="uni-stage-bar__copy">
                   <span class="uni-stage-bar__kicker" data-stage-kicker></span>
@@ -188,12 +266,34 @@
                 <div class="uni-stage-bar__nav">
                   <button type="button" class="uni-button uni-button--ghost uni-button--compact" data-prev-group>
                     <span aria-hidden="true">←</span>
-                    <span>ရှေ့</span>
+                    <span>ရှေ့အပိုင်း</span>
                   </button>
                   <button type="button" class="uni-button uni-button--ghost uni-button--compact" data-next-group>
-                    <span>နောက်</span>
+                    <span>နောက်အပိုင်း</span>
                     <span aria-hidden="true">→</span>
                   </button>
+                </div>
+              </div>
+
+              <div class="uni-section-progress" data-section-progress>
+                <div class="uni-section-progress__head">
+                  <span class="uni-section-progress__label">ဤအပိုင်း၏ ဖြေဆိုမှု</span>
+                  <strong><span data-section-progress-done>0</span> / <span data-section-progress-total>0</span></strong>
+                </div>
+                <div
+                  class="uni-section-progress__track"
+                  role="progressbar"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                  aria-valuenow="0"
+                  aria-label="ဤအပိုင်း၏ ဖြေဆိုမှု ရာခိုင်နှုန်း"
+                  data-section-progress-track
+                >
+                  <span class="uni-section-progress__bar" data-section-progress-bar></span>
+                </div>
+                <div class="uni-section-progress__meta">
+                  <span data-section-progress-percent>0%</span>
+                  <span data-section-progress-remaining>0 ခု ကျန်ရှိ</span>
                 </div>
               </div>
 
@@ -230,34 +330,50 @@
                         </ul>
                         {% endif %}
                       </div>
+                      <span class="uni-question__status" data-question-status hidden>
+                        <span class="uni-question__status-dot" aria-hidden="true"></span>
+                        <span data-question-status-text></span>
+                      </span>
                     </div>
 
                     <fieldset class="uni-question__answer" data-answer-fieldset aria-describedby="radio-error-{{ question.uQId }}">
                       <legend>ရှိ / မရှိ</legend>
-                      <label class="uni-radio">
-                        <input
-                          type="radio"
-                          name="has_{{ question.uQId }}"
-                          value="1"
-                          required
-                          {% if value.get("has") == "1" %}checked{% endif %}
-                        >
-                        <span>ရှိ</span>
-                      </label>
-                      <label class="uni-radio uni-radio--no">
-                        <input
-                          type="radio"
-                          name="has_{{ question.uQId }}"
-                          value="0"
-                          {% if value.get("has") == "0" %}checked{% endif %}
-                        >
-                        <span>မရှိ</span>
-                      </label>
+                      <div class="uni-choice-row">
+                        <label class="uni-choice uni-choice--yes">
+                          <input
+                            type="radio"
+                            name="has_{{ question.uQId }}"
+                            value="1"
+                            required
+                            {% if value.get("has") == "1" %}checked{% endif %}
+                          >
+                          <span class="uni-choice__body">
+                            <span class="uni-choice__icon" aria-hidden="true">
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>
+                            </span>
+                            <span class="uni-choice__text">ရှိ</span>
+                          </span>
+                        </label>
+                        <label class="uni-choice uni-choice--no">
+                          <input
+                            type="radio"
+                            name="has_{{ question.uQId }}"
+                            value="0"
+                            {% if value.get("has") == "0" %}checked{% endif %}
+                          >
+                          <span class="uni-choice__body">
+                            <span class="uni-choice__icon" aria-hidden="true">
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 12h12"/></svg>
+                            </span>
+                            <span class="uni-choice__text">မရှိ</span>
+                          </span>
+                        </label>
+                      </div>
                     </fieldset>
                     <p class="uni-field-error" id="radio-error-{{ question.uQId }}" data-radio-error role="alert" hidden></p>
 
                     <div class="uni-question__details" data-question-details {% if value.get("has") != "1" %}hidden{% endif %}>
-                      <label class="uni-field">
+                      <label class="uni-field uni-field--count">
                         <span>အရေအတွက်</span>
                         <input
                           type="number"
@@ -267,18 +383,20 @@
                           step="1"
                           inputmode="numeric"
                           value="{{ value.get('count', '') }}"
+                          placeholder="ဥပမာ — ၅"
                           required
                           aria-describedby="count-error-{{ question.uQId }}"
                           {% if value.get("has") != "1" %}disabled{% endif %}
                         >
                         <small class="uni-field-error" id="count-error-{{ question.uQId }}" data-count-error role="alert" hidden></small>
                       </label>
-                      <label class="uni-field">
-                        <span>အကြောင်းအရာ</span>
+                      <label class="uni-field uni-field--description">
+                        <span>အကြောင်းအရာ အသေးစိတ်</span>
                         <textarea
                           name="description_{{ question.uQId }}"
                           rows="5"
                           maxlength="4000"
+                          placeholder="အကြောင်းအရာ အသေးစိတ်ကို ဤနေရာတွင် ရေးသားပါ..."
                           required
                           aria-describedby="description-error-{{ question.uQId }}"
                           {% if value.get("has") != "1" %}disabled{% endif %}
@@ -303,19 +421,6 @@
                 </button>
               </div>
             </div>
-
-            <aside class="uni-quick-links" aria-label="မေးခွန်းအုပ်စု အမြန်လင့်များ">
-              <h2 class="uni-quick-links__head">မေးခွန်းအုပ်စုများ</h2>
-              <nav class="uni-quick-links__list">
-                {% for group in groups %}
-                <button type="button" class="uni-quick-link is-pending" data-quick-group="{{ group.key }}" data-quick-title="{{ group.title }}">
-                  <span class="uni-quick-link__index" aria-hidden="true">{{ loop.index }}</span>
-                  <span class="uni-quick-link__title">{{ group.title }}</span>
-                  <span class="uni-quick-link__icon" data-quick-icon aria-hidden="true">○</span>
-                </button>
-                {% endfor %}
-              </nav>
-            </aside>
           </div>
         </section>
 
@@ -352,5 +457,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script defer src="/static/js/public-survey.js"></script>
+<script defer src="/static/js/public-survey.js?v=20261114-answer2"></script>
 {% endblock %}

@@ -100,6 +100,31 @@ def university(connection, university_id):
     return dict(row) if row else None
 
 
+def saved_answers(connection, university_id, question_ids):
+    """Return locally submitted answers keyed by question id."""
+    if not question_ids:
+        return {}
+    rows = connection.execute(
+        select(
+            survey_schema.unisurvey.c.uQId,
+            survey_schema.unisurvey.c.hasItem,
+            survey_schema.unisurvey.c.itemCount,
+            survey_schema.unisurvey.c.surveyDescription,
+        ).where(
+            survey_schema.unisurvey.c.uniId == university_id,
+            survey_schema.unisurvey.c.uQId.in_(question_ids),
+        )
+    ).mappings()
+    values = {}
+    for row in rows:
+        values[row["uQId"]] = {
+            "has": "1" if row["hasItem"] else "0",
+            "count": "" if row["itemCount"] is None else str(row["itemCount"]),
+            "description": row["surveyDescription"] or "",
+        }
+    return values
+
+
 def save_answers(connection, university_id, questions, answers):
     """Insert one row per unanswered question and skip existing submissions."""
     question_ids = [question["uQId"] for question in questions]

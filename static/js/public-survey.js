@@ -42,6 +42,23 @@
     );
   }
 
+  // 'complete' | 'incomplete' (ရှိ but missing count/description) | 'unanswered'
+  function questionState(question) {
+    const checked = question.querySelector('input[type="radio"]:checked');
+    if (!checked) return 'unanswered';
+    return isQuestionComplete(question) ? 'complete' : 'incomplete';
+  }
+
+  function firstUnansweredQuestion(group) {
+    return (
+      Array.from(group.querySelectorAll('[data-survey-question]')).find(
+        function (question) {
+          return !isQuestionComplete(question);
+        }
+      ) || null
+    );
+  }
+
   function initCombobox(root) {
     const input = root.querySelector('[data-combobox-input]');
     const hidden = root.querySelector('[data-combobox-value]');
@@ -274,6 +291,15 @@
       }
     }
 
+    function autoGrowDescription() {
+      if (!description || details.hidden) return;
+      const minHeight = 200;
+      const target = Math.max(minHeight, description.scrollHeight);
+      if (target > description.offsetHeight) {
+        description.style.height = target + 'px';
+      }
+    }
+
     function updateFields() {
       const checked = question.querySelector('input[type="radio"]:checked');
       const show = Boolean(checked && checked.value === '1');
@@ -290,6 +316,7 @@
         );
         clearQuestionErrorIfEmpty();
       }
+      autoGrowDescription();
     }
 
     function validateCount() {
@@ -400,108 +427,206 @@
           description.closest('.uni-field')
         );
         clearQuestionErrorIfEmpty();
+        autoGrowDescription();
       });
     }
 
     updateFields();
     return {
+      element: question,
       validate: validate,
       updateFields: updateFields,
     };
   }
 
-  function initProgress(form) {
+  function initProgress(form, wizard) {
     const questions = Array.from(
       form.querySelectorAll('[data-survey-question]')
     );
     const groups = Array.from(form.querySelectorAll('[data-survey-group]'));
-    const navItems = Array.from(
-      document.querySelectorAll('.uni-group-nav__item')
-    );
-    const progressCount = document.querySelector('[data-progress-count]');
-    const progressBar = document.querySelector('[data-progress-bar]');
-    const progressLabel = document.querySelector('[data-progress-label]');
-    const submitProgress = document.querySelector('[data-submit-progress]');
     const total = questions.length;
+    const groupStats = new Map();
 
-    function setGroupCount(key, completed, groupTotal) {
-      document.querySelectorAll('[data-group-count]').forEach(function (node) {
-        if (node.dataset.groupCount === String(key)) {
-          node.textContent = String(completed) + ' / ' + String(groupTotal);
-        }
-      });
+    const overallPercent = document.querySelector('[data-overall-percent]');
+    const overallBar = document.querySelector('[data-overall-bar]');
+    const overallTrack = document.querySelector('[data-overall-track]');
+    const overallCompleted = document.querySelector('[data-overall-completed]');
+    const overallRemaining = document.querySelector('[data-overall-remaining]');
+    const navSummary = document.querySelector('[data-nav-summary]');
+    const submitProgress = document.querySelector('[data-submit-progress]');
+
+    const sectionDone = document.querySelector('[data-section-progress-done]');
+    const sectionTotal = document.querySelector('[data-section-progress-total]');
+    const sectionBar = document.querySelector('[data-section-progress-bar]');
+    const sectionTrack = document.querySelector(
+      '[data-section-progress-track]'
+    );
+    const sectionPercent = document.querySelector(
+      '[data-section-progress-percent]'
+    );
+    const sectionRemaining = document.querySelector(
+      '[data-section-progress-remaining]'
+    );
+
+    function currentKey() {
+      return wizard ? wizard.currentKey() : '';
     }
 
-    function update() {
+    function collect() {
+      groupStats.clear();
       let completed = 0;
-      const groupTotals = new Map();
 
       questions.forEach(function (question) {
-        const done = isQuestionComplete(question);
-        question.classList.toggle('is-complete', done);
-        if (done) completed += 1;
+        const state = questionState(question);
+        question.classList.toggle('is-complete', state === 'complete');
+        question.classList.toggle('is-incomplete', state === 'incomplete');
+
+        const chip = question.querySelector('[data-question-status]');
+        const chipText = question.querySelector('[data-question-status-text]');
+        if (chip && chipText) {
+          if (state === 'complete') {
+            chipText.textContent = 'ဖြေဆိုပြီး';
+            chip.hidden = false;
+          } else if (state === 'incomplete') {
+            chipText.textContent = 'မပြည့်စုံပါ';
+            chip.hidden = false;
+          } else {
+            chip.hidden = true;
+          }
+        }
+
+        if (state === 'complete') completed += 1;
 
         const group = question.closest('[data-survey-group]');
         if (!group) return;
-        const key = group.dataset.surveyGroup;
-        const entry = groupTotals.get(key) || { done: 0, total: 0 };
+        const key = String(group.dataset.surveyGroup);
+        const entry = groupStats.get(key) || { done: 0, total: 0, touched: 0 };
         entry.total += 1;
-        if (done) entry.done += 1;
-        groupTotals.set(key, entry);
+        if (state === 'complete') entry.done += 1;
+        if (state !== 'unanswered') entry.touched += 1;
+        groupStats.set(key, entry);
       });
 
-      groups.forEach(function (group) {
-        const key = group.dataset.surveyGroup;
-        const entry = groupTotals.get(key) || { done: 0, total: 0 };
-        setGroupCount(key, entry.done, entry.total);
-      });
+      return completed;
+    }
+
+    function paintGroup(key) {
+      const entry = groupStats.get(key) || { done: 0, total: 0, touched: 0 };
+      const remaining = entry.total - entry.done;
+      const complete = entry.total > 0 && remaining === 0;
+      const started = entry.touched > 0;
+      const stateLabel = complete
+        ? 'ပြီးစီး'
+        : started
+          ? 'လုပ်ဆောင်နေဆဲ'
+          : 'မစတင်ရသေး';
+
+      document
+        .querySelectorAll('[data-group-count]')
+        .forEach(function (node) {
+          if (node.dataset.groupCount === key) {
+            node.textContent =
+              String(entry.done) + ' / ' + String(entry.total) + ' မေးခွန်း';
+          }
+        });
 
       document.querySelectorAll('[data-group-card]').forEach(function (card) {
-        const entry = groupTotals.get(card.dataset.groupCard) || {
-          done: 0,
-          total: 0,
-        };
-        card.classList.toggle(
-          'is-complete',
-          entry.total > 0 && entry.done === entry.total
-        );
+        if (card.dataset.groupCard !== key) return;
+        card.classList.toggle('is-complete', complete);
+        const icon = card.querySelector('[data-group-icon]');
+        const state = card.querySelector('[data-group-state]');
+        if (icon && complete) icon.textContent = '✓';
+        if (state) state.textContent = stateLabel;
       });
 
-      navItems.forEach(function (item) {
-        const entry = groupTotals.get(item.dataset.openGroup) || {
-          done: 0,
-          total: 0,
-        };
-        item.classList.toggle(
-          'is-complete',
-          entry.total > 0 && entry.done === entry.total
-        );
+      document
+        .querySelectorAll('[data-section-item]')
+        .forEach(function (item) {
+          if (item.dataset.sectionItem !== key) return;
+          item.classList.toggle('is-complete', complete);
+          item.classList.toggle('is-in-progress', !complete && started);
+          item.classList.toggle('is-pending', !complete && !started);
+          const count = item.querySelector('[data-section-count]');
+          const rem = item.querySelector('[data-section-remaining]');
+          const stateNode = item.querySelector('[data-section-state]');
+          const icon = item.querySelector('[data-section-icon]');
+          if (count) {
+            count.textContent =
+              String(entry.done) + ' / ' + String(entry.total) + ' မေးခွန်း';
+          }
+          if (rem) {
+            rem.hidden = complete;
+            rem.textContent = String(remaining) + ' ခု ကျန်ရှိ';
+          }
+          if (stateNode) stateNode.textContent = stateLabel;
+          if (icon) {
+            icon.textContent = complete
+              ? '✓'
+              : String(item.dataset.sectionIndex || '');
+          }
+        });
+
+      return entry;
+    }
+
+    function paintSectionProgress(key) {
+      if (!key) return;
+      const entry = groupStats.get(String(key)) || { done: 0, total: 0 };
+      const remaining = entry.total - entry.done;
+      const percent = entry.total
+        ? Math.round((entry.done / entry.total) * 100)
+        : 0;
+
+      if (sectionDone) sectionDone.textContent = String(entry.done);
+      if (sectionTotal) sectionTotal.textContent = String(entry.total);
+      if (sectionBar) sectionBar.style.width = percent + '%';
+      if (sectionTrack) sectionTrack.setAttribute('aria-valuenow', String(percent));
+      if (sectionPercent) sectionPercent.textContent = percent + '%';
+      if (sectionRemaining) {
+        sectionRemaining.textContent = remaining
+          ? String(remaining) + ' ခု ကျန်ရှိ'
+          : 'အားလုံး ဖြေဆိုပြီး';
+      }
+    }
+
+    function update() {
+      const completed = collect();
+      const remaining = total - completed;
+      const percent = total ? Math.round((completed / total) * 100) : 0;
+
+      groups.forEach(function (group) {
+        paintGroup(String(group.dataset.surveyGroup));
       });
 
-      if (progressCount) progressCount.textContent = String(completed);
-      if (progressBar) {
-        progressBar.style.width =
-          (total ? (completed / total) * 100 : 0) + '%';
+      if (overallPercent) overallPercent.textContent = percent + '%';
+      if (overallBar) overallBar.style.width = percent + '%';
+      if (overallTrack) {
+        overallTrack.setAttribute('aria-valuenow', String(percent));
+      }
+      if (overallCompleted) {
+        overallCompleted.innerHTML =
+          String(completed) + ' <small>မေးခွန်း</small>';
+      }
+      if (overallRemaining) {
+        overallRemaining.innerHTML =
+          String(remaining) + ' <small>မေးခွန်း</small>';
+      }
+      if (navSummary) {
+        navSummary.textContent = String(completed) + ' / ' + String(total);
       }
       if (submitProgress) {
         submitProgress.textContent =
           String(completed) + ' / ' + String(total) + ' ဖြေဆိုပြီး';
       }
-      if (progressLabel) {
-        if (completed === 0) {
-          progressLabel.textContent = 'မေးခွန်းများကို စတင်ဖြေဆိုပါ။';
-        } else if (completed === total) {
-          progressLabel.textContent =
-            'မေးခွန်းအားလုံး ဖြေဆိုပြီးပါပြီ။ အောက်တွင် ပေးပို့ပါ။';
-        } else {
-          progressLabel.textContent =
-            String(total - completed) + ' ခု ကျန်ရှိပါသည်။';
-        }
-      }
+
+      paintSectionProgress(currentKey());
     }
 
     form.addEventListener('change', update);
     form.addEventListener('input', update);
+    form.addEventListener('survey:group-change', function (event) {
+      paintSectionProgress(event.detail.key);
+    });
     update();
   }
 
@@ -515,17 +640,16 @@
     const stageKicker = form.querySelector('[data-stage-kicker]');
     const overviewTitle = form.querySelector('[data-overview-title]');
     const openButtons = Array.from(document.querySelectorAll('[data-open-group]'));
+    const sectionItems = Array.from(
+      document.querySelectorAll('[data-section-item]')
+    );
     const startButton = form.querySelector('[data-start-survey]');
     const submitBar = form.querySelector('[data-submit-bar]');
     const closeButton = form.querySelector('[data-close-stage]');
     const prevButtons = Array.from(form.querySelectorAll('[data-prev-group]'));
     const nextButtons = Array.from(form.querySelectorAll('[data-next-group]'));
-    const navItems = Array.from(document.querySelectorAll('.uni-group-nav__item'));
-    const quickLinks = Array.from(form.querySelectorAll('[data-quick-group]'));
     const groupIndex = new Map();
     const groupByKey = new Map();
-    const visitedGroups = new Set();
-    const leftGroups = new Set();
     let currentIndex = -1;
 
     groups.forEach(function (group, index) {
@@ -540,72 +664,24 @@
         : '';
     }
 
-    function updateQuickLinks() {
-      const activeKey = currentKey();
-      quickLinks.forEach(function (link) {
-        const key = String(link.dataset.quickGroup);
-        const group = groupByKey.get(key);
-        if (!group) return;
-
-        const questions = Array.from(
-          group.querySelectorAll('[data-survey-question]')
-        );
-        const completed = questions.filter(isQuestionComplete).length;
-        const isComplete =
-          questions.length > 0 && completed === questions.length;
-        const visited = visitedGroups.has(key);
-        const isCurrent = key === activeKey;
-        const left = leftGroups.has(key);
-        const isActive = visited && !isComplete && !left;
-        const icon = link.querySelector('[data-quick-icon]');
-
-        link.classList.toggle('is-current', isCurrent);
-        link.classList.toggle('is-right', visited && isComplete);
-        link.classList.toggle('is-wrong', visited && !isComplete && left);
-        link.classList.toggle('is-active', isActive);
-        link.classList.toggle('is-pending', !visited);
-        if (isCurrent) {
-          link.setAttribute('aria-current', 'step');
-        } else {
-          link.removeAttribute('aria-current');
-        }
-
-        if (icon) {
-          if (visited && isComplete) {
-            icon.textContent = '✓';
-          } else if (visited && left) {
-            icon.textContent = '✕';
-          } else if (visited) {
-            icon.textContent = '•';
-          } else {
-            icon.textContent = '○';
-          }
-        }
-
-        let status = 'မဖြေရသေးပါ';
-        if (visited) {
-          if (isComplete) {
-            status = 'ဖြေဆိုပြီး';
-          } else if (left) {
-            status = 'မပြည့်စုံပါ';
-          } else {
-            status = 'ဖြေဆိုနေဆဲ';
-          }
-        }
-        link.setAttribute(
-          'aria-label',
-          String(link.dataset.quickTitle || '') + ' - ' + status
-        );
-      });
+    function emitGroupChange() {
+      form.dispatchEvent(
+        new CustomEvent('survey:group-change', {
+          detail: { key: currentKey() },
+        })
+      );
     }
 
     function syncNavigation() {
       const activeKey = currentKey();
-      navItems.forEach(function (item) {
-        item.classList.toggle(
-          'is-current',
-          String(item.dataset.openGroup) === activeKey
-        );
+      sectionItems.forEach(function (item) {
+        const isCurrent = String(item.dataset.sectionItem) === activeKey;
+        item.classList.toggle('is-current', isCurrent);
+        if (isCurrent) {
+          item.setAttribute('aria-current', 'step');
+        } else {
+          item.removeAttribute('aria-current');
+        }
       });
       prevButtons.forEach(function (button) {
         button.disabled = currentIndex <= 0;
@@ -617,13 +693,10 @@
       if (submitBar) {
         submitBar.hidden = currentIndex < groups.length - 1;
       }
-      updateQuickLinks();
+      emitGroupChange();
     }
 
     function showOverview(shouldFocus) {
-      if (currentIndex >= 0 && groups[currentIndex]) {
-        leftGroups.add(String(groups[currentIndex].dataset.surveyGroup));
-      }
       currentIndex = -1;
       groups.forEach(function (group) {
         group.hidden = true;
@@ -651,12 +724,8 @@
     function openIndex(index, options) {
       if (index < 0 || index >= groups.length) return;
       const settings = options || {};
-      if (currentIndex >= 0 && currentIndex !== index && groups[currentIndex]) {
-        leftGroups.add(String(groups[currentIndex].dataset.surveyGroup));
-      }
       const group = groups[index];
       currentIndex = index;
-      visitedGroups.add(String(group.dataset.surveyGroup));
 
       groups.forEach(function (item) {
         item.hidden = item !== group;
@@ -668,7 +737,7 @@
       }
       if (stageKicker) {
         stageKicker.textContent =
-          'မေးခွန်းအုပ်စု ' + String(index + 1) + ' / ' + String(groups.length);
+          'မေးခွန်း အပိုင်း ' + String(index + 1) + ' / ' + String(groups.length);
       }
       syncNavigation();
 
@@ -680,7 +749,8 @@
       ).matches;
       window.requestAnimationFrame(function () {
         if (focusTarget) {
-          focusTarget.focus({ preventScroll: true });
+          const field = focusTarget.querySelector('input[type="radio"]');
+          (field || focusTarget).focus({ preventScroll: true });
           focusTarget.scrollIntoView({
             behavior: reduceMotion ? 'auto' : 'smooth',
             block: 'center',
@@ -707,21 +777,34 @@
 
     openButtons.forEach(function (button) {
       button.addEventListener('click', function () {
-        openKey(button.dataset.openGroup);
+        const key = String(button.dataset.openGroup);
+        const group = groupByKey.get(key);
+        const unanswered = group ? firstUnansweredQuestion(group) : null;
+        if (unanswered) {
+          openKey(key, { focus: unanswered });
+          return;
+        }
+        openKey(key);
       });
     });
 
     if (startButton) {
       startButton.addEventListener('click', function () {
+        const unanswered = groups
+          .map(function (group) {
+            return firstUnansweredQuestion(group);
+          })
+          .find(Boolean);
+        if (unanswered) {
+          const group = unanswered.closest('[data-survey-group]');
+          if (group) {
+            openKey(group.dataset.surveyGroup, { focus: unanswered });
+            return;
+          }
+        }
         openIndex(0);
       });
     }
-
-    quickLinks.forEach(function (link) {
-      link.addEventListener('click', function () {
-        openKey(link.dataset.quickGroup);
-      });
-    });
 
     if (closeButton) {
       closeButton.addEventListener('click', function () {
@@ -742,9 +825,6 @@
         }
       });
     });
-
-    form.addEventListener('change', updateQuickLinks);
-    form.addEventListener('input', updateQuickLinks);
 
     function groupForQuestion(question) {
       const group = question.closest('[data-survey-group]');
@@ -770,12 +850,11 @@
       }
     }
 
-    updateQuickLinks();
-
     return {
       openKey: openKey,
       showOverview: showOverview,
       groupForQuestion: groupForQuestion,
+      currentKey: currentKey,
     };
   }
 
@@ -870,7 +949,7 @@
       .filter(Boolean);
 
     const wizard = initGroupWizard(form);
-    initProgress(form);
+    initProgress(form, wizard);
 
     form.addEventListener('submit', function (event) {
       let firstInvalid = null;
@@ -884,13 +963,13 @@
         if (!firstInvalid) firstInvalid = combobox.element;
       });
 
-      questions.forEach(function (question) {
-        const invalid = question.validate();
+      questions.forEach(function (item) {
+        const invalid = item.validate();
         if (!invalid) return;
-        invalidQuestions.push(question);
+        invalidQuestions.push(item.element);
         if (!firstInvalid) {
           firstInvalid = invalid;
-          firstInvalidQuestion = question;
+          firstInvalidQuestion = item.element;
         }
       });
 
@@ -903,9 +982,16 @@
         const group = question.closest('[data-survey-group]');
         if (!group) return;
         const title = group.dataset.groupTitle || '';
-        if (title && errorGroups.indexOf(title) === -1) {
-          errorGroups.push(title);
+        const numberNode = question.querySelector('.uni-question__number');
+        const number = numberNode ? numberNode.textContent.trim() : '';
+        let entry = errorGroups.find(function (item) {
+          return item.title === title;
+        });
+        if (!entry) {
+          entry = { title: title, numbers: [] };
+          errorGroups.push(entry);
         }
+        if (number) entry.numbers.push(number);
       });
 
       if (firstInvalidQuestion && wizard) {
@@ -914,6 +1000,13 @@
       } else if (wizard) {
         wizard.showOverview();
       }
+
+      const errorLabels = errorGroups.map(function (entry) {
+        if (!entry.numbers.length) return entry.title;
+        return (
+          entry.title + ' — မေးခွန်း ' + entry.numbers.join(', ')
+        );
+      });
 
       if (errorDialog) {
         errorDialog.addEventListener(
@@ -931,7 +1024,7 @@
           },
           { once: true }
         );
-        showSurveyError(errorGroups, identityInvalid);
+        showSurveyError(errorLabels, identityInvalid);
         return;
       }
 
@@ -945,6 +1038,24 @@
 
       if (wizard) wizard.showOverview();
       focusElement(firstInvalid);
+    });
+
+    let dirty = false;
+    form.addEventListener('input', function () {
+      dirty = true;
+    });
+    form.addEventListener('change', function () {
+      dirty = true;
+    });
+    form.addEventListener('submit', function (event) {
+      window.setTimeout(function () {
+        if (!event.defaultPrevented) dirty = false;
+      }, 0);
+    });
+    window.addEventListener('beforeunload', function (event) {
+      if (!dirty) return;
+      event.preventDefault();
+      event.returnValue = '';
     });
   }
 

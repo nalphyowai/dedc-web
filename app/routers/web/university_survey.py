@@ -32,7 +32,8 @@ def _page(request, name, context, status_code=200):
     return response
 
 
-def _question_groups(questions):
+def _question_groups(questions, values=None):
+    values = values or {}
     groups = {}
     number = 0
     for question in questions:
@@ -46,10 +47,39 @@ def _question_groups(questions):
                 "title": question["qTDetail"] or "အခြား မေးခွန်းများ",
                 "description": question["titleDescription"] or "",
                 "questions": [],
+                "done": 0,
+                "total": 0,
+                "complete": False,
             }
             groups[key] = group
         group["questions"].append({**question, "number": number})
+        group["total"] += 1
+        if _is_complete(values.get(question["uQId"], {})):
+            group["done"] += 1
+    for group in groups.values():
+        group["complete"] = group["total"] > 0 and group["done"] == group["total"]
     return list(groups.values())
+
+
+def _is_complete(value):
+    """Mirror the client rule: "မရှိ" completes; "ရှိ" needs count + description."""
+    has = str(value.get("has") or "").strip()
+    if has == "0":
+        return True
+    if has != "1":
+        return False
+    return bool(
+        str(value.get("count") or "").strip()
+        and str(value.get("description") or "").strip()
+    )
+
+
+def _completed_count(values, questions):
+    return sum(
+        1
+        for question in questions
+        if _is_complete(values.get(question["uQId"], {}))
+    )
 
 
 def _csrf_value(request):
@@ -160,13 +190,23 @@ def _render_form(
     identity_error = any(
         "စာရင်းမှ ရွေးချယ်ပါ" in error for error in errors
     )
+    groups = _question_groups(questions, values)
+    completed_count = _completed_count(values, questions)
+    question_count = len(questions)
     response = _page(
         request,
         "survey/university_form.html",
         {
             "year": _year_view(year),
-            "groups": _question_groups(questions),
-            "question_count": len(questions),
+            "groups": groups,
+            "question_count": question_count,
+            "completed_count": completed_count,
+            "remaining_count": question_count - completed_count,
+            "percent": (
+                round(completed_count / question_count * 100)
+                if question_count
+                else 0
+            ),
             "universities": universities,
             "selected_university": selected_university,
             "identity_error": identity_error,
@@ -231,11 +271,27 @@ def university_survey_form(
     submitted_status = request.query_params.get("status")
     saved = _query_int(request.query_params.get("saved"))
     skipped = _query_int(request.query_params.get("skipped"))
+    universities = survey_crud.universities(connection)
+    selected_university_id = _query_int(request.query_params.get("org")) or None
+    values = {}
+    if selected_university_id and any(
+        university["uniId"] == selected_university_id
+        for university in universities
+    ):
+        values = survey_crud.saved_answers(
+            connection,
+            selected_university_id,
+            [question["uQId"] for question in questions],
+        )
+    else:
+        selected_university_id = None
     return _render_form(
         request,
         year,
         questions,
-        survey_crud.universities(connection),
+        universities,
+        values=values,
+        selected_university_id=selected_university_id,
         submitted_status=submitted_status,
         saved=saved,
         skipped=skipped,
@@ -310,7 +366,14 @@ async def submit_university_survey(
         status = "saved"
     else:
         status = "already"
-    query = urlencode({"status": status, "saved": saved, "skipped": skipped})
+    query = urlencode(
+        {
+            "status": status,
+            "saved": saved,
+            "skipped": skipped,
+            "org": university_id,
+        }
+    )
     return RedirectResponse(
         f"/surveys/university/{year_id}?{query}", status_code=303
     )

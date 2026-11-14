@@ -91,6 +91,31 @@ def ministries(connection):
     return [dict(row) for row in connection.execute(statement).mappings()]
 
 
+def saved_answers(connection, ministry_id, question_ids):
+    """Return locally submitted answers keyed by question id."""
+    if not question_ids:
+        return {}
+    rows = connection.execute(
+        select(
+            survey_schema.ministrysurvey.c.mQId,
+            survey_schema.ministrysurvey.c.hasItem,
+            survey_schema.ministrysurvey.c.itemCount,
+            survey_schema.ministrysurvey.c.surveyDescription,
+        ).where(
+            survey_schema.ministrysurvey.c.ministryId == ministry_id,
+            survey_schema.ministrysurvey.c.mQId.in_(question_ids),
+        )
+    ).mappings()
+    values = {}
+    for row in rows:
+        values[row["mQId"]] = {
+            "has": "1" if row["hasItem"] else "0",
+            "count": "" if row["itemCount"] is None else str(row["itemCount"]),
+            "description": row["surveyDescription"] or "",
+        }
+    return values
+
+
 def save_answers(connection, ministry_id, questions, answers):
     """Insert one row per unanswered question and skip existing submissions."""
     question_ids = [question["mQId"] for question in questions]
