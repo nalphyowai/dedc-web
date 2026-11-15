@@ -4,7 +4,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="/static/css/pages/public-survey.css">
-<link rel="stylesheet" href="/static/css/pages/survey-answer.css?v=20261114-answer2">
+<link rel="stylesheet" href="/static/css/pages/survey-answer.css?v=20261115-answer5">
 {% endblock %}
 
 {% block content %}
@@ -165,14 +165,13 @@
           <div class="uni-alert uni-alert--error" role="alert">
             <span class="uni-alert__icon" aria-hidden="true">!</span>
             <div>
-              <p>အောက်ပါအချက်များကို ပြန်လည်စစ်ဆေးပါ။</p>
+              <p>ပေးပို့မှု မအောင်မြင်ပါ။ အောက်ပါအချက်များကို ပြန်လည်စစ်ဆေးပါ။</p>
+              {% if global_errors %}
               <ul>
-                {% for error in errors[:8] %}
+                {% for error in global_errors %}
                 <li>{{ error }}</li>
                 {% endfor %}
               </ul>
-              {% if errors|length > 8 %}
-              <p>နောက်ထပ် အမှား {{ errors|length - 8 }} ခု ရှိပါသည်။</p>
               {% endif %}
             </div>
           </div>
@@ -312,23 +311,17 @@
                 <div class="uni-group__body">
                   {% for question in group.questions %}
                   {% set value = values.get(question.uQId, {}) %}
-                  {% set question_errors = errors_by_question.get(question.uQId, []) %}
+                  {% set question_fields = field_errors.get(question.uQId, {}) %}
                   <article
-                    class="uni-question{% if question_errors %} uni-question--error{% endif %}"
+                    class="uni-question"
                     data-survey-question
                     data-question-id="{{ question.uQId }}"
+                    {% if question_fields %}data-has-error="true"{% endif %}
                   >
                     <div class="uni-question__head">
                       <span class="uni-question__number">{{ question.number }}</span>
                       <div class="uni-question__copy">
                         <h3>{{ question.uQDetail }}</h3>
-                        {% if question_errors %}
-                        <ul class="uni-question__errors">
-                          {% for error in question_errors %}
-                          <li>{{ error }}</li>
-                          {% endfor %}
-                        </ul>
-                        {% endif %}
                       </div>
                       <span class="uni-question__status" data-question-status hidden>
                         <span class="uni-question__status-dot" aria-hidden="true"></span>
@@ -336,7 +329,12 @@
                       </span>
                     </div>
 
-                    <fieldset class="uni-question__answer" data-answer-fieldset aria-describedby="radio-error-{{ question.uQId }}">
+                    <fieldset
+                      class="uni-question__answer"
+                      data-answer-fieldset
+                      aria-describedby="radio-error-{{ question.uQId }}"
+                      {% if question_fields.get("radio") %}aria-invalid="true"{% endif %}
+                    >
                       <legend>ရှိ / မရှိ</legend>
                       <div class="uni-choice-row">
                         <label class="uni-choice uni-choice--yes">
@@ -369,8 +367,14 @@
                           </span>
                         </label>
                       </div>
+                      <p
+                        class="uni-field-error uni-field-error--choice"
+                        id="radio-error-{{ question.uQId }}"
+                        data-radio-error
+                        role="alert"
+                        {% if not question_fields.get("radio") %}hidden{% endif %}
+                      >{{ question_fields.get("radio", "") }}</p>
                     </fieldset>
-                    <p class="uni-field-error" id="radio-error-{{ question.uQId }}" data-radio-error role="alert" hidden></p>
 
                     <div class="uni-question__details" data-question-details {% if value.get("has") != "1" %}hidden{% endif %}>
                       <label class="uni-field uni-field--count">
@@ -386,9 +390,16 @@
                           placeholder="ဥပမာ — ၅"
                           required
                           aria-describedby="count-error-{{ question.uQId }}"
+                          {% if question_fields.get("count") %}class="is-invalid" aria-invalid="true"{% endif %}
                           {% if value.get("has") != "1" %}disabled{% endif %}
                         >
-                        <small class="uni-field-error" id="count-error-{{ question.uQId }}" data-count-error role="alert" hidden></small>
+                        <small
+                          class="uni-field-error"
+                          id="count-error-{{ question.uQId }}"
+                          data-count-error
+                          role="alert"
+                          {% if not question_fields.get("count") %}hidden{% endif %}
+                        >{{ question_fields.get("count", "") }}</small>
                       </label>
                       <label class="uni-field uni-field--description">
                         <span>အကြောင်းအရာ အသေးစိတ်</span>
@@ -399,9 +410,16 @@
                           placeholder="အကြောင်းအရာ အသေးစိတ်ကို ဤနေရာတွင် ရေးသားပါ..."
                           required
                           aria-describedby="description-error-{{ question.uQId }}"
+                          {% if question_fields.get("description") %}class="is-invalid" aria-invalid="true"{% endif %}
                           {% if value.get("has") != "1" %}disabled{% endif %}
                         >{{ value.get("description", "") }}</textarea>
-                        <small class="uni-field-error" id="description-error-{{ question.uQId }}" data-description-error role="alert" hidden></small>
+                        <small
+                          class="uni-field-error"
+                          id="description-error-{{ question.uQId }}"
+                          data-description-error
+                          role="alert"
+                          {% if not question_fields.get("description") %}hidden{% endif %}
+                        >{{ question_fields.get("description", "") }}</small>
                       </label>
                     </div>
                   </article>
@@ -420,20 +438,48 @@
                   <span aria-hidden="true">→</span>
                 </button>
               </div>
+
+              <div class="uni-submit-dock" data-submit-bar hidden>
+                <div class="uni-submit-dock__inner">
+                  <div class="uni-submit-dock__info">
+                    <span class="uni-submit-dock__count">
+                      <strong data-submit-progress>{{ completed_count }} / {{ question_count }}</strong>
+                      မေးခွန်း
+                    </span>
+                    <span
+                      class="uni-submit-dock__track"
+                      role="progressbar"
+                      aria-valuemin="0"
+                      aria-valuemax="100"
+                      aria-valuenow="{{ percent }}"
+                      aria-label="ဖြေဆိုမှု ရာခိုင်နှုန်း"
+                      data-submit-track
+                    >
+                      <span class="uni-submit-dock__fill" data-submit-fill style="width: {{ percent }}%"></span>
+                    </span>
+                    <span class="uni-submit-dock__remaining" data-submit-remaining>{{ remaining_count }} ခု ကျန်ရှိ</span>
+                  </div>
+                  <button class="uni-button uni-button--primary uni-submit-dock__action" type="submit">
+                    <svg
+                      class="uni-submit-dock__icon"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.1"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <circle cx="12" cy="12" r="9"/>
+                      <path d="m8.5 12.2 2.4 2.4 4.6-4.8"/>
+                    </svg>
+                    <span data-submit-label>အဖြေများ စစ်ဆေးရန်။</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </section>
-
-        <div class="uni-submit-bar" data-submit-bar hidden>
-          <div>
-            <strong data-submit-progress>0 / {{ question_count }} ဖြေဆိုပြီး</strong>
-            <span>အဖြေအားလုံး ဖြည့်ပြီးပါက အောက်တွင် ပေးပို့ပါ။</span>
-          </div>
-          <button class="uni-button uni-button--primary" type="submit">
-            အဖြေများ ပေးပို့ရန်
-            <span aria-hidden="true">→</span>
-          </button>
-        </div>
 
         <dialog class="uni-error-dialog" data-survey-error-dialog aria-labelledby="survey-error-title" aria-describedby="survey-error-message">
           <div class="uni-error-dialog__body">
@@ -457,5 +503,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script defer src="/static/js/public-survey.js?v=20261114-answer2"></script>
+<script defer src="/static/js/public-survey.js?v=20261115-answer3"></script>
 {% endblock %}

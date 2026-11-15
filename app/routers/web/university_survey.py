@@ -82,6 +82,39 @@ def _completed_count(values, questions):
     )
 
 
+_FIELD_HINTS = (
+    ("count", "အရေအတွက်"),
+    ("description", "အကြောင်းအရာ"),
+    ("radio", "ရှိ/မရှိ"),
+)
+
+
+def _field_errors(errors_by_question):
+    """Map server messages onto the field they belong to (one message per field)."""
+    field_errors = {}
+    for question_id, messages in errors_by_question.items():
+        fields = {}
+        for message in messages:
+            for key, needle in _FIELD_HINTS:
+                if needle in message:
+                    fields.setdefault(key, message)
+                    break
+            else:
+                fields.setdefault("other", message)
+        field_errors[question_id] = fields
+    return field_errors
+
+
+def _global_errors(errors):
+    """Keep only messages that are not shown next to a specific field."""
+    return [
+        error
+        for error in errors
+        if not error.startswith("မေးခွန်း ")
+        and "စာရင်းမှ ရွေးချယ်ပါ" not in error
+    ]
+
+
 def _csrf_value(request):
     existing = request.cookies.get(CSRF_COOKIE, "")
     if existing and len(existing) >= 20:
@@ -212,7 +245,9 @@ def _render_form(
             "identity_error": identity_error,
             "values": values,
             "errors": errors,
+            "global_errors": _global_errors(errors),
             "errors_by_question": errors_by_question,
+            "field_errors": _field_errors(errors_by_question),
             "csrf_token": csrf_token,
             "submitted_status": submitted_status,
             "saved": saved,

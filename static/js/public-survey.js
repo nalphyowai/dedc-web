@@ -6,9 +6,10 @@
   }
 
   function setInvalid(control, message, errorNode, wrapper) {
-    if (!control) return;
-    control.classList.add('is-invalid');
-    control.setAttribute('aria-invalid', 'true');
+    if (control) {
+      control.classList.add('is-invalid');
+      control.setAttribute('aria-invalid', 'true');
+    }
     if (wrapper) wrapper.classList.add('is-invalid');
     if (errorNode) {
       errorNode.textContent = message;
@@ -285,12 +286,6 @@
     const description = details.querySelector('textarea');
     const descriptionError = question.querySelector('[data-description-error]');
 
-    function clearQuestionErrorIfEmpty() {
-      if (!question.querySelector('.uni-field-error:not([hidden])')) {
-        question.classList.remove('has-client-error');
-      }
-    }
-
     function autoGrowDescription() {
       if (!description || details.hidden) return;
       const minHeight = 200;
@@ -314,7 +309,6 @@
           descriptionError,
           description && description.closest('.uni-field')
         );
-        clearQuestionErrorIfEmpty();
       }
       autoGrowDescription();
     }
@@ -348,13 +342,17 @@
       let firstInvalid = null;
       const checked = question.querySelector('input[type="radio"]:checked');
 
-      clearInvalid(answerFieldset, radioError);
+      clearInvalid(null, radioError);
+      if (answerFieldset) answerFieldset.removeAttribute('aria-invalid');
       if (!checked) {
         setInvalid(
-          answerFieldset,
-          'ရှိ/မရှိ ကို ရွေးချယ်ပါ။',
+          null,
+          'ရှိ / မရှိ တစ်ခုရွေးချယ်ပေးပါ။',
           radioError
         );
+        if (answerFieldset) {
+          answerFieldset.setAttribute('aria-invalid', 'true');
+        }
         firstInvalid = radios[0] || null;
       }
 
@@ -397,14 +395,13 @@
         );
       }
 
-      question.classList.toggle('has-client-error', Boolean(firstInvalid));
       return firstInvalid;
     }
 
     radios.forEach(function (radio) {
       radio.addEventListener('change', function () {
-        clearInvalid(answerFieldset, radioError);
-        clearQuestionErrorIfEmpty();
+        clearInvalid(null, radioError);
+        if (answerFieldset) answerFieldset.removeAttribute('aria-invalid');
         updateFields();
         if (radio.value === '1' && radio.checked && count) {
           count.focus();
@@ -415,7 +412,6 @@
     if (count) {
       count.addEventListener('input', function () {
         clearInvalid(count, countError, count.closest('.uni-field'));
-        clearQuestionErrorIfEmpty();
       });
     }
 
@@ -426,7 +422,6 @@
           descriptionError,
           description.closest('.uni-field')
         );
-        clearQuestionErrorIfEmpty();
         autoGrowDescription();
       });
     }
@@ -454,6 +449,10 @@
     const overallRemaining = document.querySelector('[data-overall-remaining]');
     const navSummary = document.querySelector('[data-nav-summary]');
     const submitProgress = document.querySelector('[data-submit-progress]');
+    const submitTrack = document.querySelector('[data-submit-track]');
+    const submitFill = document.querySelector('[data-submit-fill]');
+    const submitRemaining = document.querySelector('[data-submit-remaining]');
+    const submitLabel = document.querySelector('[data-submit-label]');
 
     const sectionDone = document.querySelector('[data-section-progress-done]');
     const sectionTotal = document.querySelector('[data-section-progress-total]');
@@ -593,6 +592,7 @@
       const completed = collect();
       const remaining = total - completed;
       const percent = total ? Math.round((completed / total) * 100) : 0;
+      const allComplete = total > 0 && remaining === 0;
 
       groups.forEach(function (group) {
         paintGroup(String(group.dataset.surveyGroup));
@@ -616,7 +616,25 @@
       }
       if (submitProgress) {
         submitProgress.textContent =
-          String(completed) + ' / ' + String(total) + ' ဖြေဆိုပြီး';
+          String(completed) + ' / ' + String(total);
+      }
+      if (submitFill) {
+        submitFill.style.width = percent + '%';
+        submitFill.classList.toggle('is-complete', allComplete);
+      }
+      if (submitTrack) {
+        submitTrack.setAttribute('aria-valuenow', String(percent));
+      }
+      if (submitRemaining) {
+        submitRemaining.textContent = remaining
+          ? String(remaining) + ' ခု ကျန်ရှိ'
+          : 'အားလုံး ပြီးစီး';
+        submitRemaining.classList.toggle('is-complete', allComplete);
+      }
+      if (submitLabel) {
+        submitLabel.textContent = allComplete
+          ? 'အဖြေများ ပေးပို့ရန်'
+          : 'အဖြေများ ပေးပို့ရန်';
       }
 
       paintSectionProgress(currentKey());
@@ -691,7 +709,7 @@
           currentIndex < 0 || currentIndex >= groups.length - 1;
       });
       if (submitBar) {
-        submitBar.hidden = currentIndex < groups.length - 1;
+        submitBar.hidden = currentIndex < 0;
       }
       emitGroupChange();
     }
@@ -832,7 +850,7 @@
     }
 
     const firstServerError = form.querySelector(
-      '[data-survey-question].uni-question--error'
+      '[data-survey-question][data-has-error]'
     );
     const identityInvalid = document.querySelector(
       '[data-combobox].is-invalid'

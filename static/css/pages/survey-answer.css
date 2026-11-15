@@ -161,6 +161,11 @@
   gap: 1.35rem;
 }
 
+/* Room for the fixed submit dock so it never hides the last card or nav. */
+.uni-answer-main {
+  padding-bottom: 1.5rem;
+}
+
 .uni-section-nav {
   position: sticky;
   top: 5.2rem;
@@ -656,13 +661,22 @@
   outline-offset: 2px;
 }
 
-.uni-question__answer.is-invalid .uni-choice__body {
-  border-color: #e3a19a;
+/* Selection errors stay textual: no red box around the choice group. */
+.uni-question__answer.is-invalid {
+  outline: none;
 }
 
-.uni-question > .uni-field-error {
-  grid-column: auto;
+.uni-question__answer.is-invalid legend {
+  color: var(--uni-muted);
+}
+
+.uni-question__answer .uni-field-error {
+  margin-top: .5rem;
   margin-left: 0;
+}
+
+.uni-question__answer .uni-field-error::before {
+  margin-top: .12rem;
 }
 
 /* Quantity + detailed description */
@@ -696,6 +710,134 @@
 
 .uni-field textarea::placeholder {
   color: #9aabbd;
+}
+
+/* Inline field validation: only the invalid control is highlighted. */
+.uni-question__details .uni-field.is-invalid > span {
+  color: var(--uni-muted);
+}
+
+.uni-question__details .uni-field input.is-invalid,
+.uni-question__details .uni-field textarea.is-invalid {
+  border-color: #e0aaa3;
+  background: #fff;
+  color: var(--uni-ink);
+  box-shadow: 0 0 0 .16rem rgb(180 35 24 / 6%);
+}
+
+.uni-question__details .uni-field input.is-invalid:focus,
+.uni-question__details .uni-field textarea.is-invalid:focus {
+  border-color: #d18b82;
+  box-shadow: 0 0 0 .18rem rgb(180 35 24 / 10%);
+}
+
+.uni-field-error {
+  font-size: .72rem;
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+/* ------------------------------------------------------------------ */
+/* Compact sticky submit dock                                          */
+/* ------------------------------------------------------------------ */
+.uni-submit-dock {
+  position: fixed;
+  z-index: 40;
+  bottom: .85rem;
+  /* Align with the question column so the sidebar stays clear.
+     1160px / 48px mirror the .container rule in pages/home.css. */
+  left: calc(50% - min(1160px, 100% - 48px) / 2 + 20.35rem);
+  width: calc(min(1160px, 100% - 48px) - 3rem - 18.85rem);
+  padding: .55rem .7rem;
+  border: 1px solid #dbe6f3;
+  border-radius: .9rem;
+  background: rgb(255 255 255 / 97%);
+  box-shadow: 0 18px 38px -22px rgb(19 34 56 / 45%);
+  backdrop-filter: blur(12px);
+}
+
+.uni-submit-dock[hidden] {
+  display: none;
+}
+
+.uni-submit-dock__inner {
+  display: flex;
+  align-items: center;
+  gap: .9rem;
+}
+
+.uni-submit-dock__info {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: .7rem;
+}
+
+.uni-submit-dock__count {
+  flex: 0 0 auto;
+  color: var(--uni-muted);
+  font-size: .72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.uni-submit-dock__count strong {
+  color: var(--uni-ink);
+  font-family: "DM Sans", sans-serif;
+  font-size: .86rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+}
+
+.uni-submit-dock__track {
+  display: block;
+  min-width: 3.5rem;
+  max-width: 14rem;
+  flex: 1 1 8rem;
+  height: .34rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e6eef8;
+}
+
+.uni-submit-dock__fill {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #1a63b8, #4a95e3);
+  transition: width .28s ease, background .28s ease;
+}
+
+.uni-submit-dock__fill.is-complete {
+  background: linear-gradient(90deg, #1f7a55, #37a876);
+}
+
+.uni-submit-dock__remaining {
+  flex: 0 0 auto;
+  color: var(--uni-gold);
+  font-size: .7rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.uni-submit-dock__remaining.is-complete {
+  color: var(--uni-green);
+}
+
+.uni-submit-dock__action {
+  flex: 0 0 auto;
+  min-height: 2.4rem;
+  padding: .45rem .85rem;
+  border-radius: .65rem;
+  font-size: .76rem;
+}
+
+.uni-submit-dock__icon {
+  width: 1rem;
+  height: 1rem;
 }
 
 /* ------------------------------------------------------------------ */
@@ -736,6 +878,12 @@
   .uni-section-item__meta {
     gap: .25rem .35rem;
   }
+
+  .uni-submit-dock {
+    left: 50%;
+    width: calc(min(1160px, 100% - 48px) - 3rem);
+    transform: translateX(-50%);
+  }
 }
 
 @media (max-width: 48rem) {
@@ -750,6 +898,43 @@
   .uni-group-card__state {
     grid-column: 2;
     justify-self: start;
+  }
+
+  .uni-submit-dock {
+    bottom: max(.5rem, env(safe-area-inset-bottom, 0px));
+    padding: .5rem .6rem;
+  }
+
+}
+
+@media (max-width: 47.9375rem) {
+  .uni-submit-dock {
+    width: calc(min(100% - 32px, 620px) - 3rem);
+  }
+}
+
+@media (max-width: 40rem) {
+  .uni-answer-main {
+    padding-bottom: 2rem;
+  }
+
+  .uni-submit-dock__inner {
+    flex-wrap: wrap;
+    gap: .5rem;
+  }
+
+  .uni-submit-dock__info {
+    flex: 1 1 100%;
+    gap: .5rem;
+  }
+
+  .uni-submit-dock__track {
+    max-width: none;
+  }
+
+  .uni-submit-dock__action {
+    width: 100%;
+    flex: 1 1 100%;
   }
 }
 
@@ -788,9 +973,16 @@
   }
 }
 
+@media (max-width: 26.25rem) {
+  .uni-submit-dock {
+    width: calc(100% - 24px - 3rem);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .uni-overall__bar,
   .uni-section-progress__bar,
+  .uni-submit-dock__fill,
   .uni-choice__body,
   .uni-section-item,
   .uni-group-card {
