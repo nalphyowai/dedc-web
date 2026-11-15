@@ -1,5 +1,6 @@
 import { reportingYears } from "./period.js";
 import { api } from "./api.js";
+import { openQuestionImport } from "./question-import.js?v=20261115-import4";
 import { renderYearlyBars } from "./trend.js?v=20261113-overview18";
 const arrowIcon = '<svg class="inline-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 17 17 5M8 5h9v9"/></svg>';
 const closeIcon = '<svg class="inline-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 5 19 19M19 5 5 19"/></svg>';
@@ -1206,6 +1207,8 @@ const REPORT_ICONS = {
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 18V6M4 18h16"/><path d="m7 14 4-4 3 2 4-5"/></svg>',
   download:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0 4-4m-4 4-4-4M5 20h14"/></svg>',
+  upload:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20V9m0 0 4 4m-4-4-4 4M5 4h14"/></svg>',
 };
 
 const UNIVERSITY_REPORT_CONFIG = {
@@ -1550,10 +1553,11 @@ async function formsPage() {
   }
   surveyBoardData = surveys;
   actions(
-    `<a class="button" href="/dashboard/reports">အစီရင်ခံစာများ ကြည့်ရန်</a><button class="button primary" id="create-action">စစ်တမ်း အသစ်ဖန်တီးရန်</button>`,
+    `<a class="button" href="/dashboard/reports">အစီရင်ခံစာများ ကြည့်ရန်</a><button class="button" id="import-action">${REPORT_ICONS.upload}<span>Excel မှ မေးခွန်း တင်သွင်းရန်</span></button><button class="button primary" id="create-action">စစ်တမ်း အသစ်ဖန်တီးရန်</button>`,
   );
   setContent(surveyBoard(surveys, orgFilter, search));
   document.querySelector("#create-action").onclick = createForm;
+  document.querySelector("#import-action").onclick = openQuestionImport;
   document.querySelector("#export-questions-btn").onclick = exportYearQuestions;
   bindFilters(load);
 

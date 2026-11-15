@@ -1349,3 +1349,105 @@ def delete_year_question_group(db: Session, org_type: OrgType, year_id: int, qTI
             uni_schema.questiontitle.delete().where(uni_schema.questiontitle.c.qTID == qTID)
         )
     return True
+
+
+# ============================================================
+# Excel question import (existing tables only)
+# ============================================================
+
+def find_years_by_range(
+    db: Session,
+    start_year: int,
+    start_month: int,
+    end_year: int,
+    end_month: int,
+) -> list[dict[str, Any]]:
+    """Return year rows whose stored start/end month and year match.
+
+    Published periods are listed first so an import appends to the live
+    period when both a draft and a published row share the same range.
+    """
+    conn = _get_native_connection(db)
+    rows = conn.execute(
+        select(
+            uni_schema.year.c.yID,
+            uni_schema.year.c.yearFrom,
+            uni_schema.year.c.yearTo,
+            uni_schema.year.c.status,
+        )
+    ).all()
+    matches = [
+        {"yID": row.yID, "status": row.status}
+        for row in rows
+        if _extract_year(row.yearFrom) == start_year
+        and _extract_month(row.yearFrom) == start_month
+        and _extract_year(row.yearTo) == end_year
+        and _extract_month(row.yearTo) == end_month
+    ]
+    matches.sort(key=lambda item: (0 if item["status"] == 1 else 1, item["yID"]))
+    return matches
+
+
+def import_question_groups(
+    db: Session,
+    org_type: OrgType,
+    start_year: int,
+    start_month: int,
+    end_year: int,
+    end_month: int,
+    groups: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Insert one title per group and its questions, reusing the year range.
+
+    Every Excel group gets its own ``questiontitle`` row even when the text
+    matches another group or an existing title, because the workbook defines
+    distinct groups. The caller commits; any exception leaves the inserts
+    uncommitted so the session dependency rolls them back.
+    """
+    if not groups:
+        raise ValueError("No question groups to import")
+    conn = _get_native_connection(db)
+    matches = find_years_by_range(
+        db, start_year, start_month, end_year, end_month
+    )
+    year_created = not matches
+    if matches:
+        yID = matches[0]["yID"]
+    else:
+        result = conn.execute(
+            uni_schema.year.insert().values(
+                yearFrom=date(start_year, start_month, 1),
+                yearTo=date(end_year, end_month, 1),
+                status=0,
+            )
+        )
+        yID = result.inserted_primary_key[0]
+
+    question_table, _id_column, detail_column = _org_question_columns(org_type)
+    total_questions = 0
+    for group in groups:
+        title = (group.get("title") or "").strip()
+        questions = [question for question in group.get("questions") or [] if question]
+        if not title or not questions:
+            raise ValueError("Every question group needs a title and questions")
+        title_result = conn.execute(
+            uni_schema.questiontitle.insert().values(
+                qTDetail=title,
+                description=None,
+            )
+        )
+        qTID = title_result.inserted_primary_key[0]
+        for question in questions:
+            conn.execute(
+                question_table.insert().values(
+                    **{detail_column.key: question, "qTID": qTID, "yID": yID}
+                )
+            )
+            total_questions += 1
+
+    return {
+        "year_id": yID,
+        "year_created": year_created,
+        "total_titles": len(groups),
+        "total_questions": total_questions,
+    }

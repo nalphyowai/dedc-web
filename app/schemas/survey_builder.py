@@ -364,3 +364,76 @@ class CreatedSurveyFormOutput(BaseModel):
     org_type: OrgType
     groups: list[CreatedSurveyQuestionGroup]
     question_count: int
+
+
+# ============================================================
+# Excel question import (shared Ministry/University template)
+# ============================================================
+
+class QuestionImportIssue(BaseModel):
+    """One row-aware validation message from the uploaded workbook."""
+
+    row: Optional[int] = None
+    message: str
+
+
+class QuestionImportQuestion(BaseModel):
+    """One question row in the preview."""
+
+    row: int
+    detail: str
+
+
+class QuestionImportGroup(BaseModel):
+    """One question-title group in the preview."""
+
+    row: int
+    title: str
+    questions: list[QuestionImportQuestion]
+
+
+class QuestionImportYear(BaseModel):
+    """The year period the import will use."""
+
+    year_id: Optional[int] = None
+    exists: bool
+    status: Optional[YearStatus] = None
+    start_year: int
+    start_month: int
+    end_year: int
+    end_month: int
+    label: str
+
+
+class QuestionImportPreview(BaseModel):
+    """Validated workbook preview; nothing is written before confirmation."""
+
+    ok: bool
+    filename: str
+    org_type: OrgType
+    start_year: int
+    start_month: int
+    end_year: int
+    end_month: int
+    year: QuestionImportYear
+    total_titles: int
+    total_questions: int
+    duplicate_questions: int
+    empty_rows: int
+    groups: list[QuestionImportGroup]
+    errors: list[QuestionImportIssue]
+
+
+class QuestionImportResult(BaseModel):
+    """Counts returned after a successful import transaction."""
+
+    org_type: OrgType
+    start_year: int
+    start_month: int
+    end_year: int
+    end_month: int
+    year_id: int
+    year_created: bool
+    year_label: str
+    total_titles: int
+    total_questions: int

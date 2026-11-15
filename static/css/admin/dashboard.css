@@ -2050,3 +2050,74 @@ body[data-page='question_answer_rates'] .page-heading { display: none; }
   .qa-bar-row__value { gap: 4px; }
   .qa-bar-row__value small { font-size: 9px; }
 }
+
+/* ============================================================
+   Excel question import wizard (scoped to its dialog)
+   ============================================================ */
+dialog[data-variant='import-wizard'] { width: min(880px, calc(100vw - 32px)); }
+dialog[data-variant='import-wizard'] .qi-wizard { gap: 16px; }
+dialog[data-variant='import-wizard'] .qi-steps { flex-wrap: wrap; }
+dialog[data-variant='import-wizard'] .qi-hint { padding: 11px 14px; border: 1px solid var(--border); border-radius: 9px; background: var(--canvas); color: var(--muted); font-size: 11.5px; line-height: 1.7; }
+dialog[data-variant='import-wizard'] .qi-template { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 14px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--canvas); }
+dialog[data-variant='import-wizard'] .qi-template__body { display: grid; gap: 2px; min-width: 0; flex: 1 1 220px; }
+dialog[data-variant='import-wizard'] .qi-template__body strong { font-size: 13px; font-weight: 600; }
+dialog[data-variant='import-wizard'] .qi-template__body span { color: var(--muted); font-size: 11.5px; overflow-wrap: anywhere; }
+dialog[data-variant='import-wizard'] .qi-template .button { flex: none; }
+dialog[data-variant='import-wizard'] .qi-template .button svg { width: 16px; height: 16px; }
+dialog[data-variant='import-wizard'] .qi-drop { position: relative; display: grid; justify-items: center; gap: 5px; padding: 28px 20px; border: 1.5px dashed color-mix(in srgb, var(--primary) 38%, var(--border)); border-radius: 14px; background: var(--canvas); color: var(--ink); text-align: center; cursor: pointer; transition: border-color var(--duration), background var(--duration); }
+dialog[data-variant='import-wizard'] .qi-drop:hover,
+dialog[data-variant='import-wizard'] .qi-drop:focus-within,
+dialog[data-variant='import-wizard'] .qi-drop.is-dragging { border-color: var(--primary); background: var(--primary-soft); }
+dialog[data-variant='import-wizard'] .qi-drop.has-file { border-style: solid; border-color: color-mix(in srgb, var(--primary) 45%, var(--border)); }
+dialog[data-variant='import-wizard'] .qi-drop input[type='file'] { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; padding: 0; opacity: 0; cursor: pointer; }
+dialog[data-variant='import-wizard'] .qi-drop input[type='file']:focus-visible { outline: none; }
+dialog[data-variant='import-wizard'] .qi-drop__icon { display: inline-flex; align-items: center; justify-content: center; width: 46px; height: 46px; border-radius: 50%; background: var(--surface); color: var(--primary); }
+dialog[data-variant='import-wizard'] .qi-drop__icon svg { width: 22px; height: 22px; }
+dialog[data-variant='import-wizard'] .qi-drop strong { font-size: 13.5px; font-weight: 600; }
+dialog[data-variant='import-wizard'] .qi-drop > span:not(.qi-drop__icon) { color: var(--muted); font-size: 11.5px; }
+dialog[data-variant='import-wizard'] .qi-drop__file { max-width: 100%; padding: 4px 12px; border-radius: 999px; background: var(--primary-soft); color: var(--primary) !important; font-weight: 600; overflow-wrap: anywhere; }
+dialog[data-variant='import-wizard'] .qi-error { padding: 10px 14px; border: 1px solid color-mix(in srgb, var(--danger) 35%, var(--border)); border-radius: 9px; background: var(--danger-bg); color: var(--danger); font-size: 12px; }
+dialog[data-variant='import-wizard'] .qi-badge { display: inline-flex; align-items: center; padding: 5px 12px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+dialog[data-variant='import-wizard'] .qi-badge--existing { background: var(--success-bg); color: var(--success); }
+dialog[data-variant='import-wizard'] .qi-badge--new { background: var(--primary-soft); color: var(--primary); }
+dialog[data-variant='import-wizard'] .qi-counts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+dialog[data-variant='import-wizard'] .qi-counts > div { display: grid; gap: 2px; padding: 14px 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); text-align: center; }
+dialog[data-variant='import-wizard'] .qi-counts strong { font-size: 22px; font-weight: 600; line-height: 1.3; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+dialog[data-variant='import-wizard'] .qi-counts span { color: var(--muted); font-size: 11px; }
+dialog[data-variant='import-wizard'] .qi-errors { display: grid; gap: 7px; padding: 14px 16px; border: 1px solid color-mix(in srgb, var(--danger) 32%, var(--border)); border-radius: 12px; background: var(--danger-bg); color: var(--danger); }
+dialog[data-variant='import-wizard'] .qi-errors h3 { font-size: 13px; font-weight: 600; line-height: 1.6; }
+dialog[data-variant='import-wizard'] .qi-errors ul { display: grid; gap: 5px; margin: 0; padding-left: 20px; font-size: 12.5px; line-height: 1.7; overflow-wrap: anywhere; }
+dialog[data-variant='import-wizard'] .qi-preview { display: grid; gap: 10px; max-height: min(46vh, 420px); overflow: auto; padding: 2px 4px 2px 2px; scrollbar-width: thin; }
+dialog[data-variant='import-wizard'] .qi-preview:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+dialog[data-variant='import-wizard'] .qi-group { display: grid; gap: 7px; padding: 12px 15px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+dialog[data-variant='import-wizard'] .qi-group header { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+dialog[data-variant='import-wizard'] .qi-group h3 { flex: 1 1 auto; margin: 0; font-size: 13px; font-weight: 600; overflow-wrap: anywhere; }
+dialog[data-variant='import-wizard'] .qi-group__row { flex: none; padding: 1px 8px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); font-size: 10.5px; font-variant-numeric: tabular-nums; }
+dialog[data-variant='import-wizard'] .qi-group__count { flex: none; min-width: 22px; padding: 1px 8px; border-radius: 999px; background: color-mix(in srgb, var(--primary) 12%, transparent); color: var(--primary); font-size: 11px; font-weight: 600; text-align: center; font-variant-numeric: tabular-nums; }
+dialog[data-variant='import-wizard'] .qi-group ol { display: grid; gap: 4px; margin: 0; padding-left: 22px; font-size: 12.5px; line-height: 1.75; overflow-wrap: anywhere; }
+dialog[data-variant='import-wizard'] .qi-actions { margin-top: 2px; gap: 10px; padding-top: 4px; }
+dialog[data-variant='import-wizard'] .qi-actions .button { min-height: 42px; padding-inline: 20px; }
+dialog[data-variant='import-wizard'] .qi-result { display: grid; justify-items: center; gap: 12px; padding: 8px 0 4px; text-align: center; }
+dialog[data-variant='import-wizard'] .qi-result__icon { display: grid; place-items: center; width: 58px; height: 58px; border-radius: 50%; background: var(--success-bg); color: var(--success); }
+dialog[data-variant='import-wizard'] .qi-result__icon svg { width: 28px; height: 28px; }
+dialog[data-variant='import-wizard'] .qi-result h3 { font-size: 17px; font-weight: 600; }
+dialog[data-variant='import-wizard'] .qi-result__intro { max-width: 46ch; color: var(--muted); font-size: 12.5px; line-height: 1.75; }
+dialog[data-variant='import-wizard'] .qi-result__facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; width: 100%; margin: 4px 0; }
+dialog[data-variant='import-wizard'] .qi-result__facts > div { display: grid; gap: 2px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--canvas); }
+dialog[data-variant='import-wizard'] .qi-result__facts dt { color: var(--muted); font-size: 11px; }
+dialog[data-variant='import-wizard'] .qi-result__facts dd { margin: 0; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+dialog[data-variant='import-wizard'] .qi-result .qi-actions { width: 100%; justify-content: center; }
+@media (max-width: 640px) {
+  dialog[data-variant='import-wizard'] { width: calc(100vw - 20px); }
+  dialog[data-variant='import-wizard'] .qi-steps { gap: 7px; }
+  dialog[data-variant='import-wizard'] .qi-counts { grid-template-columns: minmax(0, 1fr); }
+  dialog[data-variant='import-wizard'] .qi-counts > div { padding: 11px 12px; }
+  dialog[data-variant='import-wizard'] .qi-counts strong { font-size: 19px; }
+  dialog[data-variant='import-wizard'] .qi-template { flex-direction: column; align-items: stretch; }
+  dialog[data-variant='import-wizard'] .qi-template .button { width: 100%; }
+  dialog[data-variant='import-wizard'] .qi-preview { max-height: 40vh; }
+  dialog[data-variant='import-wizard'] .qi-actions { flex-direction: column-reverse; }
+  dialog[data-variant='import-wizard'] .qi-actions .button { width: 100%; justify-content: center; }
+  dialog[data-variant='import-wizard'] .qi-result__facts { grid-template-columns: minmax(0, 1fr); }
+  dialog[data-variant='import-wizard'] .qi-result .qi-actions { flex-direction: column-reverse; }
+}

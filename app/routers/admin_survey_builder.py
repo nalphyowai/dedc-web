@@ -1,10 +1,11 @@
 """Admin routes for the survey form builder - using ONLY existing 10 tables."""
 import csv
 import io
+import logging
 from typing import Any
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
@@ -23,6 +24,8 @@ from app.schemas.survey_builder import (
     OrgType,
     QuestionGroupOutput,
     QuestionGroupUpdateInput,
+    QuestionImportPreview,
+    QuestionImportResult,
     QuestionListParams,
     QuestionTitleInput,
     QuestionTitleOutput,
@@ -39,6 +42,10 @@ from app.schemas.survey_builder import (
     YearPeriodUpdateInput,
     YearStatusUpdate,
 )
+from app.services import question_import as question_import_service
+from app.services.question_import import ImportFileError
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/admin/survey", tags=["survey builder"])
 
@@ -822,3 +829,143 @@ def delete_year_question_group(
         db.native.rollback()
         raise HTTPException(404, "Question title not found for this year")
     db.commit()
+
+
+# ============================================================
+# Excel question import (shared Ministry/University template)
+# ============================================================
+
+def _validate_import_years(
+    start_year: int,
+    start_month: int,
+    end_year: int,
+    end_month: int,
+) -> None:
+    if not 1900 <= start_year <= 2100 or not 1900 <= end_year <= 2100:
+        raise HTTPException(
+            400, "ခုနှစ်ကို 1900 မှ 2100 အတွင်း ရွေးချယ်ပါ။"
+        )
+    if not 1 <= start_month <= 12 or not 1 <= end_month <= 12:
+        raise HTTPException(
+            400, "လကို 1 မှ 12 အတွင်း ရွေးချယ်ပါ။"
+        )
+    if (start_year, start_month) > (end_year, end_month):
+        raise HTTPException(
+            400, "စတင်ကာလသည် ပြီးဆုံးကာလထက် မကြီးရပါ။"
+        )
+
+
+async def _read_import_upload(file: UploadFile) -> tuple[bytes, str]:
+    filename = file.filename or ""
+    if not filename.lower().endswith(".xlsx"):
+        raise HTTPException(
+            400, "Excel .xlsx ဖိုင် တစ်ခုသာ တင်သွင်းနိုင်ပါသည်။"
+        )
+    content = await file.read(question_import_service.MAX_UPLOAD_BYTES + 1)
+    if len(content) > question_import_service.MAX_UPLOAD_BYTES:
+        raise HTTPException(
+            413, "Excel ဖိုင် အရွယ်အစား 5 MB ထက် မကျော်ရပါ။"
+        )
+    if not content:
+        raise HTTPException(400, "တင်သွင်းသော ဖိုင် ဗလာ ဖြစ်နေပါသည်။")
+    return content, filename
+
+
+def _parse_import_file(content: bytes, filename: str):
+    try:
+        return question_import_service.parse_question_workbook(
+            content, filename
+        )
+    except ImportFileError as error:
+        raise HTTPException(400, str(error)) from error
+
+
+@router.get("/questions/import/template")
+def download_question_import_template(
+    admin: AdminIdentity = Depends(require_admin),
+):
+    """Download the single two-column workbook used by both audiences."""
+    content = question_import_service.build_template_workbook()
+    return Response(
+        content,
+        media_type=question_import_service.XLSX_MEDIA_TYPE,
+        headers={
+            "Content-Disposition": (
+                'attachment; filename="'
+                + question_import_service.TEMPLATE_FILENAME
+                + '"'
+            ),
+            "Cache-Control": "no-store",
+        },
+    )
+
+
+@router.post(
+    "/questions/import/preview", response_model=QuestionImportPreview
+)
+async def preview_question_import(
+    org_type: OrgType = Form(...),
+    start_year: int = Form(...),
+    start_month: int = Form(...),
+    end_year: int = Form(...),
+    end_month: int = Form(...),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    admin: AdminIdentity = Depends(require_admin),
+):
+    """Validate an upload and return its groups; nothing is saved yet."""
+    _validate_import_years(start_year, start_month, end_year, end_month)
+    content, filename = await _read_import_upload(file)
+    parsed = _parse_import_file(content, filename)
+    return question_import_service.build_preview(
+        db,
+        parsed,
+        org_type,
+        start_year,
+        start_month,
+        end_year,
+        end_month,
+    )
+
+
+@router.post(
+    "/questions/import/confirm", response_model=QuestionImportResult
+)
+async def confirm_question_import(
+    org_type: OrgType = Form(...),
+    start_year: int = Form(...),
+    start_month: int = Form(...),
+    end_year: int = Form(...),
+    end_month: int = Form(...),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    admin: AdminIdentity = Depends(require_admin),
+):
+    """Re-validate the upload and insert every group in one transaction."""
+    _validate_import_years(start_year, start_month, end_year, end_month)
+    content, filename = await _read_import_upload(file)
+    parsed = _parse_import_file(content, filename)
+    if not parsed.ok:
+        first = parsed.errors[0]
+        prefix = f"အတန်း {first.row}: " if first.row else ""
+        raise HTTPException(400, prefix + first.message)
+    try:
+        result = question_import_service.apply_import(
+            db,
+            parsed,
+            org_type,
+            start_year,
+            start_month,
+            end_year,
+            end_month,
+        )
+        db.commit()
+    except Exception:
+        db.native.rollback()
+        logger.exception("Question import failed for %s", org_type)
+        raise HTTPException(
+            500,
+            "မေးခွန်းများ တင်သွင်းစဉ် အမှား ဖြစ်ပွားသဖြင့် မည်သည့် "
+            "အချက်အလက်မှ မသိမ်းဆည်းရသေးပါ။ ထပ်မံ ကြိုးစားပါ။",
+        ) from None
+    return result
